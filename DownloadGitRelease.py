@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 import json
+from os import get_terminal_size as gts
 from time import sleep
 from urllib import request
 from getDimensions import get_terminal_size
@@ -8,7 +9,7 @@ class DownloadGitRelease:
     def __init__(self, username, repo_name):
         self.username = username
         self.repo_name = repo_name
-        self.dimensions = get_terminal_size()
+        self.dimensions = (gts().columns, gts().lines)
         self.status = "waiting...".ljust(self.dimensions[0])
     def __checkFile(self, whitelist, filename):
         if whitelist != []:
