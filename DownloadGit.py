@@ -5,20 +5,23 @@ from urllib import request
 from math import floor
 
 class ProgressBar:
-	def __init__(self, maxValue=None, char=['', '#', ''], msg='', barLenght=0, showPercent=False, showRemainingTime=False, showRemaining=False):
+	def __init__(self, maxValue=None, char=['', '#', ''], msg='', barLength=0, showPercent=False, showRemainingTime=False, showRemaining=False):
 		self.maxValue = maxValue
 		self.char = char
-		self.barLenght = barLenght
+		self.barLength = barLength
 		self.showPercent = showPercent
 		self.showRemaining = showRemaining
+		self.showRemainingTime = showRemainingTime
 		if msg != '':
 			msg += ': '
 		self.pattern = msg + '[%s]'
 		self.update(0)
 	def __enter__(self):
 		self.starttime = time() * 1000
+		return self
 	def __exit__(self, excpetion_type, expetion_val, trace):
-		self.startime = None
+		term_size = os.get_terminal_size()
+		print(('Finished after ' + str(round((time()*1000 - self.starttime)/1000, 3)) + ' s').ljust(floor(term_size.columns)))
 	def update(self, currentValue, maxValue=None):
 		if self.maxValue == None:
 			self.maxValue = maxValue
@@ -28,28 +31,28 @@ class ProgressBar:
 			currentPercent = 1
 		temp = ''
 		if self.showRemaining:
-			temp += ' ' + str(currentValue) + '/' + str(self.maxValue)
+			temp += (' ' + str(currentValue) + '/' + str(self.maxValue)).ljust(len(str(self.maxValue))*2)
 		if self.showPercent:
-			temp += ' ' + str(round(currentPercent, 2)) + "%"
-		if self.showRemainingTime:
-			temp += ' ' + str((self.startime - time() * 1000)/currentPercent*100)
+			temp += (' ' + str(round(currentPercent, 2)) + "%%").ljust(4)
+		if self.showRemainingTime and hasattr(self, 'starttime'):
+			temp += ' ' + str(round((time() * 1000 - self.starttime)/currentPercent*(100-currentPercent)/1000, 3))
 		currentPattern = self.pattern + temp
-		currentPatternLength = len(currentPattern) - 4
+		currentPatternLength = len(currentPattern) - 2
+		lenChar0 = len(self.char[0])
+		lenChar1 = len(self.char[1])
+		lenChar2 = len(self.char[2])
 		temp = ''
-		if self.barLenght == 0:
-			self.barLenght = currentPatternLength - term_size.columns
-			lenChar0 = len(self.char[0])
-			lenChar1 = len(self.char[1])
-			lenChar2 = len(self.char[2])
-			if self.barLength >= lenChar0 + lenChar1 + lenChar2:
-				temp = self.char[0] + self.char[1] * floor((self.barLength-lenChar2-lenChar0)/lenChar1/100*currentPercent) + self.char[1]
-			elif self.barLength >= lenChar1 + lenChar2:
-				temp = self.char[1] * floor((self.barLength-lenChar2)/lenChar1/100*currentPercent) + self.char[2]
-			elif self.barLength == lenChar1:
-				temp = self.char[1] * (self.barLength/lenChar1)
+		if self.barLength == 0:
+			barLength = term_size.columns - currentPatternLength
+			if barLength >= lenChar0 + lenChar1 + lenChar2:
+				temp = self.char[0] + self.char[1] * floor((barLength-lenChar2-lenChar0)/lenChar1/100*currentPercent) + self.char[2]
+			elif barLength >= lenChar1 + lenChar2:
+				temp = self.char[1] * floor((barLength-lenChar2)/lenChar1/100*currentPercent) + self.char[2]
+			elif barLength == lenChar1:
+				temp = self.char[1] * (barLength/lenChar1)
 		else:
-			temp = self.char[0] + self.char[1]*((self.barLenght-lenChar0-lenChar2)/lenChar1/100*currentPercent) + self.char[2]
-		temp = temp.ljust(self.barLenght)
+			temp = self.char[0] + self.char[1]*floor((self.barLength-lenChar0-lenChar2)/lenChar1/100*currentPercent) + self.char[2]
+		temp = temp.ljust(barLength)
 		print(currentPattern % temp, end="\r")
 
 class myProgressBar(ProgressBar):
@@ -82,7 +85,7 @@ class DownloadGitRelease:
 		response = request.urlopen(url)
 		return response.read()
 	def __downloadFileWithProgressBar(self, url, localDir):
-		with myProgressBar() as bar:
+		with myProgressBar(['', '=', '>'], 'Loading', 0, True, True, True) as bar:
 			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
@@ -170,7 +173,7 @@ class DownloadGitFiles(DownloadGitRelease):
 		response = request.urlopen(url)
 		return response.read()
 	def __downloadFileWithProgressBar(self, url, localDir):
-		with myProgressBar() as bar:
+		with myProgressBar(['', '=', '>'], 'Loading', 0, True, True, True) as bar:
 			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
