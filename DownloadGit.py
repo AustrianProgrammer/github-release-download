@@ -1,12 +1,68 @@
 #! /usr/bin/env python3
 import json, os
-from time import sleep
+from time import sleep, time
 from urllib import request
+from math import floor
+
+class ProgressBar:
+	def __init__(self, maxValue=None, char=['', '#', ''], msg='', barLenght=0, showPercent=False, showRemainingTime=False, showRemaining=False):
+		self.maxValue = maxValue
+		self.char = char
+		self.barLenght = barLenght
+		self.showPercent = showPercent
+		self.showRemaining = showRemaining
+		if msg != '':
+			msg += ': '
+		self.pattern = msg + '[%s]'
+		self.update(0)
+	def __enter__(self):
+		self.starttime = time() * 1000
+	def __exit__(self, excpetion_type, expetion_val, trace):
+		self.startime = None
+	def update(self, currentValue, maxValue=None):
+		if self.maxValue == None:
+			self.maxValue = maxValue
+		term_size = os.get_terminal_size()
+		currentPercent = currentValue/self.maxValue*100
+		if currentPercent == 0:
+			currentPercent = 1
+		temp = ''
+		if self.showRemaining:
+			temp += ' ' + str(currentValue) + '/' + str(self.maxValue)
+		if self.showPercent:
+			temp += ' ' + str(round(currentPercent, 2)) + "%"
+		if self.showRemainingTime:
+			temp += ' ' + str((self.startime - time() * 1000)/currentPercent*100)
+		currentPattern = self.pattern + temp
+		currentPatternLength = len(currentPattern) - 4
+		temp = ''
+		if self.barLenght == 0:
+			self.barLenght = currentPatternLength - term_size.columns
+			lenChar0 = len(self.char[0])
+			lenChar1 = len(self.char[1])
+			lenChar2 = len(self.char[2])
+			if self.barLength >= lenChar0 + lenChar1 + lenChar2:
+				temp = self.char[0] + self.char[1] * floor((self.barLength-lenChar2-lenChar0)/lenChar1/100*currentPercent) + self.char[1]
+			elif self.barLength >= lenChar1 + lenChar2:
+				temp = self.char[1] * floor((self.barLength-lenChar2)/lenChar1/100*currentPercent) + self.char[2]
+			elif self.barLength == lenChar1:
+				temp = self.char[1] * (self.barLength/lenChar1)
+		else:
+			temp = self.char[0] + self.char[1]*((self.barLenght-lenChar0-lenChar2)/lenChar1/100*currentPercent) + self.char[2]
+		temp = temp.ljust(self.barLenght)
+		print(currentPattern % temp, end="\r")
+
+class myProgressBar(ProgressBar):
+	def update_to(self, currentBlocks, blockSize, totalSize):
+		self.update(currentBlocks*blockSize, totalSize)
 
 class DownloadGitRelease:
-	def __init__(self, username, repo_name):
+	def __init__(self, username, repo_name, downloadTo=None):
 		self.username = username
 		self.repo_name = repo_name
+		if downloadTo == None:
+			downloadTo = os.path.abspath('.')
+		self.downloadTo = downloadTo
 		term_size = os.get_terminal_size()
 		self.dimensions = (int(term_size.columns), int(term_size.lines))
 		self.status = "waiting...".ljust(self.dimensions[0])
@@ -25,6 +81,9 @@ class DownloadGitRelease:
 		url = url.replace(' ', '%20')
 		response = request.urlopen(url)
 		return response.read()
+	def __downloadFileWithProgressBar(self, url, localDir):
+		with myProgressBar() as bar:
+			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
 	def download(self, releaseTag='', whitelist=[], statusMsg=False):
@@ -79,10 +138,11 @@ class DownloadGitRelease:
 			if statusMsg:
 				print(self.status, end='\r')
 				sleep(0.3)
-			content = self.__downloadFile(fileList[file][0])
-			f = open(file, self.__getFileMode(whitelist, file))
-			f.write(content)
-			f.close()
+			if statusMsg:
+				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file))
+			else:
+				with open(os.path.join(self.downloadTo, file), 'w') as f:
+					f.write(self.__downloadFile(fileList[file][0]))
 			downloadedSize += fileList[file][1]
 			self.status = ('Downloading... ' + str(round(downloadedSize/totalSize*100, 3)) + '% done.').ljust(self.dimensions[0])
 			if statusMsg:
@@ -109,6 +169,9 @@ class DownloadGitFiles(DownloadGitRelease):
 		url = url.replace(' ', '%20')
 		response = request.urlopen(url)
 		return response.read()
+	def __downloadFileWithProgressBar(self, url, localDir):
+		with myProgressBar() as bar:
+			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
 	def download(self, whitelist=[], statusMsg=False):
@@ -145,10 +208,11 @@ class DownloadGitFiles(DownloadGitRelease):
 			if statusMsg:
 				print(self.status, end='\r')
 				sleep(0.3)
-			content = self.__downloadFile(fileList[file][0])
-			f = open(file, self.__getFileMode(whitelist, file))
-			f.write(content)
-			f.close()
+			if statusMsg:
+				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file))
+			else:
+				with open(os.path.join(self.downloadTo, file), 'w') as f:
+					f.write(self.__downloadFile(fileList[file][0]))
 			downloadedSize += fileList[file][1]
 			self.status = ('Downloading... ' + str(round(downloadedSize/totalSize*100, 3)) + '% done.').ljust(self.dimensions[0])
 			if statusMsg:
