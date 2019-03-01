@@ -5,13 +5,14 @@ from urllib import request
 from math import floor
 
 class ProgressBar:
-	def __init__(self, maxValue=None, char=['', '#', ''], msg='', barLength=0, showPercent=False, showRemainingTime=False, showRemaining=False):
+	def __init__(self, maxValue=None, char=['', '#', ''], msg='', endMessage="", barLength=0, showPercent=False, showRemainingTime=False, showRemaining=False):
 		self.maxValue = maxValue
 		self.char = char
 		self.barLength = barLength
 		self.showPercent = showPercent
 		self.showRemaining = showRemaining
 		self.showRemainingTime = showRemainingTime
+		self.endMessage = endMessage
 		if msg != '':
 			msg += ': '
 		self.pattern = msg + '[%s]'
@@ -21,10 +22,15 @@ class ProgressBar:
 		return self
 	def __exit__(self, excpetion_type, expetion_val, trace):
 		term_size = os.get_terminal_size()
-		print(('Finished after ' + str(round((time()*1000 - self.starttime)/1000, 3)) + ' s').ljust(floor(term_size.columns)))
+		if self.endMessage == '':
+			print(('Finished after ' + str(round((time()*1000 - self.starttime)/1000, 3)) + ' s').ljust(floor(term_size.columns)))
+		else:
+			print((self.endMessage + ' after ' + str(round((time()*1000 - self.starttime)/1000, 3)) + ' s').ljust(floor(term_size.columns)))
 	def update(self, currentValue, maxValue=None):
-		if self.maxValue == None:
+		if maxValue != None:
 			self.maxValue = maxValue
+		if currentValue > self.maxValue:
+			self.maxValue = currentValue
 		term_size = os.get_terminal_size()
 		currentPercent = currentValue/self.maxValue*100
 		if currentPercent == 0:
@@ -42,8 +48,8 @@ class ProgressBar:
 		lenChar1 = len(self.char[1])
 		lenChar2 = len(self.char[2])
 		temp = ''
+		barLength = term_size.columns - currentPatternLength
 		if self.barLength == 0:
-			barLength = term_size.columns - currentPatternLength
 			if barLength >= lenChar0 + lenChar1 + lenChar2:
 				temp = self.char[0] + self.char[1] * floor((barLength-lenChar2-lenChar0)/lenChar1/100*currentPercent) + self.char[2]
 			elif barLength >= lenChar1 + lenChar2:
@@ -84,8 +90,8 @@ class DownloadGitRelease:
 		url = url.replace(' ', '%20')
 		response = request.urlopen(url)
 		return response.read()
-	def __downloadFileWithProgressBar(self, url, localDir):
-		with myProgressBar(['', '=', '>'], 'Loading', 0, True, True, True) as bar:
+	def __downloadFileWithProgressBar(self, url, localDir, filesize):
+		with myProgressBar(filesize, ['', '=', '>'], 'Loading', 'Downloaded "' + url + '" to "' + localDir + '"', 0, True, True, True) as bar:
 			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
@@ -142,7 +148,7 @@ class DownloadGitRelease:
 				print(self.status, end='\r')
 				sleep(0.3)
 			if statusMsg:
-				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file))
+				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file), fileList[file][1])
 			else:
 				with open(os.path.join(self.downloadTo, file), 'w') as f:
 					f.write(self.__downloadFile(fileList[file][0]))
@@ -172,8 +178,8 @@ class DownloadGitFiles(DownloadGitRelease):
 		url = url.replace(' ', '%20')
 		response = request.urlopen(url)
 		return response.read()
-	def __downloadFileWithProgressBar(self, url, localDir):
-		with myProgressBar(['', '=', '>'], 'Loading', 0, True, True, True) as bar:
+	def __downloadFileWithProgressBar(self, url, localDir, filesize):
+		with myProgressBar(filesize, ['', '=', '>'], 'Loading', 'Downloaded "' + url + '" to ' + localDir + '"', 0, True, True, True) as bar:
 			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
@@ -212,7 +218,7 @@ class DownloadGitFiles(DownloadGitRelease):
 				print(self.status, end='\r')
 				sleep(0.3)
 			if statusMsg:
-				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file))
+				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file), fileList[file][1])
 			else:
 				with open(os.path.join(self.downloadTo, file), 'w') as f:
 					f.write(self.__downloadFile(fileList[file][0]))
