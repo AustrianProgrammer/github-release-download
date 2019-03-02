@@ -208,7 +208,11 @@ class DownloadGitFiles(DownloadGitRelease):
 				sleep(0.3)
 			tmp += 1
 		downloadedSize = 0
-		self.status = ('Downloading... ' + str(downloadedSize/totalSize*100) + '% done.').ljust(self.dimensions[0])
+		try:
+			percent = downloadedSize/totalSize*100
+		except:
+			percent = 1
+		self.status = ('Downloading... ' + str(percent) + '% done.').ljust(self.dimensions[0])
 		if statusMsg:
 			print(self.status, end='\r')
 			sleep(0.3)
