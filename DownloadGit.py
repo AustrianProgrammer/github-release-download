@@ -145,7 +145,7 @@ class DownloadGitRelease:
 		for file in fileList.keys():
 			self.status = ("Downloading File " + file).ljust(self.dimensions[0])
 			if statusMsg:
-				print(self.status, end='\r')
+				print(self.status, end='\n')
 				sleep(0.3)
 			if statusMsg:
 				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file), fileList[file][1])
@@ -198,11 +198,16 @@ class DownloadGitFiles(DownloadGitRelease):
 		if statusMsg:
 			print(self.status, end='\r')
 			sleep(0.3)
+		print()
+		print(fileList)
+		print(len(fileList))
+		print()
 		for file in filelist:
 			if self.__checkFile(whitelist, file["name"]):
 				fileList.update({file["name"]: [file["download_url"], int(file["size"])]})
 				totalSize += int(file["size"])
-			self.status = ('Searching... ' + str(round((tmp/(len(fileList)+1)*100))) + "% completed").ljust(self.dimensions[0])
+				print(tmp)
+			self.status = ('Searching... ' + str(round(tmp/(len(fileList)+1)*100)) + "% completed").ljust(self.dimensions[0])
 			if statusMsg:
 				print(self.status, end='\r')
 				sleep(0.3)
@@ -219,7 +224,7 @@ class DownloadGitFiles(DownloadGitRelease):
 		for file in fileList.keys():
 			self.status = ("Downloading File " + file).ljust(self.dimensions[0])
 			if statusMsg:
-				print(self.status, end='\r')
+				print(self.status, end='\n')
 				sleep(0.3)
 			if statusMsg:
 				self.__downloadFileWithProgressBar(fileList[file][0], os.path.join(self.downloadTo, file), fileList[file][1])
