@@ -91,7 +91,7 @@ class DownloadGitRelease:
 		response = request.urlopen(url)
 		return response.read()
 	def __downloadFileWithProgressBar(self, url, localDir, filesize):
-		with myProgressBar(filesize, ['', '=', '>'], 'Loading', 'Downloaded "' + url + '" to "' + localDir + '"', 0, True, True, True) as bar:
+		with myProgressBar(filesize, ['', '=', '>'], 'Loading', 'Downloaded "' + url + '" to "' + localDir + '"', 0, True, True) as bar:
 			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
@@ -179,7 +179,7 @@ class DownloadGitFiles(DownloadGitRelease):
 		response = request.urlopen(url)
 		return response.read()
 	def __downloadFileWithProgressBar(self, url, localDir, filesize):
-		with myProgressBar(filesize, ['', '=', '>'], 'Loading', 'Downloaded "' + url + '" to ' + localDir + '"', 0, True, True, True) as bar:
+		with myProgressBar(filesize, ['', '=', '>'], 'Loading', 'Downloaded "' + url + '" to ' + localDir + '"', 0, True, True) as bar:
 			request.urlretrieve(url, filename=localDir, reporthook=bar.update_to)
 	def __downloadJson(self, url):
 		return json.loads(self.__downloadFile(url))
@@ -198,16 +198,11 @@ class DownloadGitFiles(DownloadGitRelease):
 		if statusMsg:
 			print(self.status, end='\r')
 			sleep(0.3)
-		print()
-		print(fileList)
-		print(len(fileList))
-		print()
 		for file in filelist:
 			if self.__checkFile(whitelist, file["name"]):
 				fileList.update({file["name"]: [file["download_url"], int(file["size"])]})
 				totalSize += int(file["size"])
-				print(tmp)
-			self.status = ('Searching... ' + str(round(tmp/(len(fileList)+1)*100)) + "% completed").ljust(self.dimensions[0])
+			self.status = ('Searching... ' + str(round(tmp/len(filelist)*100)) + "% completed").ljust(self.dimensions[0])
 			if statusMsg:
 				print(self.status, end='\r')
 				sleep(0.3)
@@ -216,7 +211,7 @@ class DownloadGitFiles(DownloadGitRelease):
 		try:
 			percent = downloadedSize/totalSize*100
 		except:
-			percent = 1
+			percent = 0
 		self.status = ('Downloading... ' + str(percent) + '% done.').ljust(self.dimensions[0])
 		if statusMsg:
 			print(self.status, end='\r')
