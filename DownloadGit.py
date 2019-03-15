@@ -41,7 +41,7 @@ class ProgressBar:
 		if self.showPercent:
 			temp += (' ' + str(round(currentPercent, 2)) + "%%").ljust(4)
 		if self.showRemainingTime and hasattr(self, 'starttime'):
-			temp += ' ' + str(round((time() * 1000 - self.starttime)/currentPercent*(100-currentPercent)/1000)) + 's'
+			temp += (' ' + str(round((time() * 1000 - self.starttime)/currentPercent*(100-currentPercent)/1000)) + 's').ljust(3)
 		currentPattern = self.pattern + temp
 		currentPatternLength = len(currentPattern) - 2
 		lenChar0 = len(self.char[0])
